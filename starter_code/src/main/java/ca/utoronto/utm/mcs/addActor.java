@@ -5,22 +5,24 @@ import static org.neo4j.driver.v1.Values.parameters;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import java.util.List;
+import java.util.Map;
 import org.json.*;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.TransactionWork;
 
-public class addActor implements HttpHandler
-{
+public class addActor implements HttpHandler {
   private Driver neo4jDriver;
   private String name;
   private String ID;
-  private String response;
+  private Map addResponse;
 
   //constructor
   public addActor(neo4j database){
@@ -31,9 +33,7 @@ public class addActor implements HttpHandler
 
   public void handle(HttpExchange r) {
     try {
-      if (r.getRequestMethod().equals("GET")) {
-        handleGet(r);
-      } else if (r.getRequestMethod().equals("POST")) {
+      if (r.getRequestMethod().equals("PUT")) {
         handlePut(r);
       }
     } catch (Exception e) {
@@ -48,9 +48,9 @@ public class addActor implements HttpHandler
     try ( Session session = neo4jDriver.session() )
     {
       System.out.println("session is created");
-      response = session.writeTransaction( new TransactionWork<String>() {
+      addResponse = session.writeTransaction( new TransactionWork<Map>() {
         @Override
-        public String execute(Transaction tx) {
+        public Map execute(Transaction tx) {
           return createActor(tx, name, ID);
         }
       });
@@ -58,57 +58,17 @@ public class addActor implements HttpHandler
     System.out.println(neo4jDriver.session());
   }
 
-  private static String createActor(Transaction tx, String name, String ID){
+  private static Map createActor(Transaction tx, String name, String ID){
     System.out.println("private function creatActor is running");
-    StatementResult result = tx.run( "CREATE (a:Actor) " +
-            "SET a.name = $name, a.ID = $ID " +
-            "RETURN 'a.ID is added'",
-        parameters("name", name , "ID", ID));
-    return result.single().get(0).asString();
-  }
-
-  public void get( final String ID )
-  {
-    try ( Session session = neo4jDriver.session() )
-    {
-      String greeting = session.writeTransaction( new TransactionWork<String>() {
-        @Override
-        public String execute(Transaction tx) {
-          return getActor(tx, ID);
-        }
-      });
-    }
-  }
-  private static String getActor(Transaction tx, String ID) {
-    StatementResult result = tx.run("MATCH (a:Actor) " +
-            "MATCH (a:Actor { ID: $ID })"
-            + "RETURN a.name",
-        parameters("ID", ID));
-    return result.single().get(0).asString();
-  }
-
-
-  public void handleGet(HttpExchange r) throws IOException, JSONException {
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-
-    // See body and deserilized
-    System.out.println("addActor HandleGet :");
-    System.out.println(deserialized);
-
-    if (deserialized.has("name"))
-      name = deserialized.getString("name");
-
-    if (deserialized.has("ID"))
-      ID = deserialized.getString("ID");
-
-    //Interaction with database
-    get(ID);
-
-    r.sendResponseHeaders(200, response.length());
-    OutputStream os = r.getResponseBody();
-    os.write(response.getBytes());
-    os.close();
+    StatementResult result = tx.run( "MERGE (a:Actor{actorID:$actorID}) " +
+            "ON CREATE SET a.name = $name " +
+            "RETURN a.name, a.actorID",
+        parameters("name", name , "actorID", ID));
+    //Get values from neo4j StatementResult object
+    List<Record> records = result.list();
+    Record record = records.get(0);
+    Map recordMap = record.asMap();
+    return recordMap;
   }
 
   public void handlePut(HttpExchange r) throws IOException, JSONException {
@@ -123,15 +83,22 @@ public class addActor implements HttpHandler
     if (deserialized.has("name"))
       name = deserialized.getString("name");
 
-    if (deserialized.has("ID"))
-      ID = deserialized.getString("ID");
+    if (deserialized.has("actorID"))
+      ID = deserialized.getString("actorID");
 
     //interaction with database
+    // what if name or ID is none??
     add(name, ID);
 
-    r.sendResponseHeaders(200, 0);
+    //result for server-client interaction
+    JSONObject responseJSON = new JSONObject();
+    responseJSON.put("name", addResponse.get("a.name"));
+    responseJSON.put("actorID", addResponse.get("a.actorID"));
+    byte[] result = responseJSON.toString().getBytes();
+
+    r.sendResponseHeaders(200, result.length);
     OutputStream os = r.getResponseBody();
-//    os.write(response.getBytes());
+    os.write(result);
     os.close();
   }
 

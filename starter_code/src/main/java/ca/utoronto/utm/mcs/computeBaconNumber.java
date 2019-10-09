@@ -1,6 +1,5 @@
 package ca.utoronto.utm.mcs;
 
-import static org.neo4j.driver.v1.Values.ofList;
 import static org.neo4j.driver.v1.Values.parameters;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -18,80 +17,74 @@ import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.TransactionWork;
 
-public class addMovie implements HttpHandler {
+public class computeBaconNumber implements HttpHandler {
 
   private Driver neo4jDriver;
-  private String name;
-  private String ID;
-  private Map response;
+  private String actorID;
+  private String baconID = "1";
+  private Map getResponse;
 
   //constructor
-  public addMovie(neo4j database) {
+  public computeBaconNumber(neo4j database){
     neo4jDriver = database.getDriver();
   }
 
   public void handle(HttpExchange r) {
-    try {
-      if (r.getRequestMethod().equals("PUT")) {
-        handlePut(r);
+    try{
+      if (r.getRequestMethod().equals("GET")) {
+        handleGet(r);
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  public void handlePut(HttpExchange r) throws IOException, JSONException {
+  public void handleGet(HttpExchange r) throws IOException, JSONException {
     String body = Utils.convert(r.getRequestBody());
     JSONObject deserialized = new JSONObject(body);
 
-    System.out.println("addMovie handler get:");
+    System.out.println("getRelationship handler get:");
     System.out.println(deserialized);
 
-    if (deserialized.has("name"))
-      name = deserialized.getString("name");
-
-    if (deserialized.has("movieID"))
-      ID = deserialized.getString("movieID");
+    if (deserialized.has("actorID"))
+      actorID = deserialized.getString("actorID");
 
     //interaction with database
-    add(name, ID);
+    get(actorID, baconID);
     //result for server-client interaction
     JSONObject responseJSON = new JSONObject();
-    responseJSON.put("name", response.get("m.name"));
-    responseJSON.put("movieID", response.get("m.movieID"));
+    responseJSON.put("baconNumber", getResponse.get("Number"));
     byte[] result = responseJSON.toString().getBytes();
 
-    r.sendResponseHeaders(200, result.length);
+    r.sendResponseHeaders(200, 0);
     OutputStream os = r.getResponseBody();
     os.write(result);
     os.close();
   }
 
-  public void add(String name, String ID){
-    try (Session session = neo4jDriver.session())
+  public void get( final String actorID, final String movieID)
+  {
+    try ( Session session = neo4jDriver.session() )
     {
-      response = session.writeTransaction( new TransactionWork<Map>() {
+      getResponse = session.writeTransaction( new TransactionWork<Map>() {
         @Override
         public Map execute(Transaction tx) {
-          return createMovie(tx, name, ID);
+          return getRelationshipData(tx, actorID, movieID);
         }
       });
     }
   }
 
-  public Map createMovie(Transaction tx, String  name, String ID){
-
-    //if the same movie is added twice, only one node should be created
-
-
-    StatementResult result = tx.run("MERGE (m:Movie {movieID:$movieID}) " +
-        "ON CREATE SET m.name = $name " +
-        "RETURN m.name, m.movieID",
-        parameters("name", name , "movieID", ID));
-
-    System.out.println("\ncreateMovie is returning the result");
+  private static Map getRelationshipData(Transaction tx, String actorID, String baconID) {
+    StatementResult result = tx.run("MATCH p=shortestPath((a:Actor{actorID:$actorID})-[*]-" +
+            "(b:Actor{actorID:$baconID})) " +
+            "RETURN length(p) as Number",
+        parameters("actorID", actorID, "baconID", baconID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
+
+    System.out.println(records);
+
     Record record = records.get(0);
     Map recordMap = record.asMap();
 

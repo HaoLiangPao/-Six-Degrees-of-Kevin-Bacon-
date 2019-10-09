@@ -30,11 +30,12 @@ public class App
 
         server.createContext("/api/v1/addActor", new addActor(database));
         server.createContext("/api/v1/addMovie", new addMovie(database));
-//        server.createContext("/api/v1/addRelationship", new addRelationship());
-//        server.createContext("/api/v1/getActor", new getActor());
-//        server.createContext("/api/v1/getMovie", new getMovie());
-//        server.createContext("/api/v1/getRelationship", new getRelationship());
+        server.createContext("/api/v1/addRelationship", new addRelationship(database));
+        server.createContext("/api/v1/getActor", new getActor(database));
+        server.createContext("/api/v1/getMovie", new getMovie(database));
+        server.createContext("/api/v1/hasRelationship", new hasRelationship(database));
 //        server.createContext("/api/v1/computeBaconPath", new computBaconPath());
+        server.createContext("/api/v1/computeBaconNumber", new computeBaconNumber(database));
 
         server.start();
         System.out.printf("Server started on port %d...\n", PORT);
