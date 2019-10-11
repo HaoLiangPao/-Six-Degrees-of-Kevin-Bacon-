@@ -75,7 +75,7 @@ public class addRelationship implements HttpHandler {
 
   public String createRelationship(Transaction tx, String  actorID, String movieID){
     StatementResult result = tx.run("MATCH (a:Actor), (b:Movie) " +
-            "WHERE a.actorID = $actorID AND b.movieID = $movieID " +
+            "WHERE a.id = $actorID AND b.id = $movieID " +
             "MERGE (a)-[r:ACTED_IN]->(b)" +
             "RETURN type(r)",
         parameters("actorID", actorID , "movieID", movieID));

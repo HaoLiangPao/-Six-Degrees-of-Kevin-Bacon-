@@ -77,9 +77,9 @@ public class getMovie implements HttpHandler {
     //if the same movie is added twice, only one node should be created
 
 
-    StatementResult result = tx.run("MATCH (m:Movie{movieID:$movieID})<-" +
+    StatementResult result = tx.run("MATCH (m:Movie{id:$movieID})<-" +
             "[ACTED_IN]-(a:Actor) " +
-            "RETURN m.movieID as movieID, m.name as name, collect(a.actorID) as actors",
+            "RETURN m.id as movieID, m.name as name, collect(a.id) as actors",
         parameters("movieID", ID));
 
     //Get values from neo4j StatementResult object

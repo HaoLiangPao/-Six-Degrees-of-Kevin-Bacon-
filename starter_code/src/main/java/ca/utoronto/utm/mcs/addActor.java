@@ -60,9 +60,9 @@ public class addActor implements HttpHandler {
 
   private static Map createActor(Transaction tx, String name, String ID){
     System.out.println("private function creatActor is running");
-    StatementResult result = tx.run( "MERGE (a:Actor{actorID:$actorID}) " +
+    StatementResult result = tx.run( "MERGE (a:Actor{id:$actorID}) " +
             "ON CREATE SET a.name = $name " +
-            "RETURN a.name, a.actorID",
+            "RETURN a.name, a.id",
         parameters("name", name , "actorID", ID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
@@ -93,7 +93,7 @@ public class addActor implements HttpHandler {
     //result for server-client interaction
     JSONObject responseJSON = new JSONObject();
     responseJSON.put("name", addResponse.get("a.name"));
-    responseJSON.put("actorID", addResponse.get("a.actorID"));
+    responseJSON.put("actorID", addResponse.get("a.id"));
     byte[] result = responseJSON.toString().getBytes();
 
     r.sendResponseHeaders(200, result.length);

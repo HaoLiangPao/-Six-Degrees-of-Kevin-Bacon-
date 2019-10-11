@@ -58,7 +58,7 @@ public class addMovie implements HttpHandler {
     //result for server-client interaction
     JSONObject responseJSON = new JSONObject();
     responseJSON.put("name", response.get("m.name"));
-    responseJSON.put("movieID", response.get("m.movieID"));
+    responseJSON.put("movieID", response.get("m.id"));
     byte[] result = responseJSON.toString().getBytes();
 
     r.sendResponseHeaders(200, result.length);
@@ -84,9 +84,9 @@ public class addMovie implements HttpHandler {
     //if the same movie is added twice, only one node should be created
 
 
-    StatementResult result = tx.run("MERGE (m:Movie {movieID:$movieID}) " +
+    StatementResult result = tx.run("MERGE (m:Movie {id:$movieID}) " +
         "ON CREATE SET m.name = $name " +
-        "RETURN m.name, m.movieID",
+        "RETURN m.name, m.id",
         parameters("name", name , "movieID", ID));
 
     System.out.println("\ncreateMovie is returning the result");

@@ -12,13 +12,14 @@ public class App
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", PORT), 0);
 
         String url = "bolt://localhost:7687";
+        // remember to change to your user and password
         String user = "neo4j";
-        String password = "123456";
+        String password = "neo4j";
         neo4j database = new neo4j(url, user, password);
         System.out.println(database.getDriver());
 
         //Read TSV file
-        TsvReader actors = new TsvReader("/Users/lianghao/Desktop/CSCC01/CSCC01-A1/starter_code/src/main/java/ca/utoronto/utm/mcs/actors-testing.tsv");
+        //TsvReader actors = new TsvReader("/Users/lianghao/Desktop/CSCC01/CSCC01-A1/starter_code/src/main/java/ca/utoronto/utm/mcs/actors-testing.tsv");
 
         server.createContext("/api/v1/addActor", new addActor(database));
         server.createContext("/api/v1/addMovie", new addMovie(database));
