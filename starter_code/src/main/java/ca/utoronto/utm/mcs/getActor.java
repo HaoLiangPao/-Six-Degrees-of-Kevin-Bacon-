@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,7 +21,7 @@ import org.neo4j.driver.v1.TransactionWork;
 public class getActor implements HttpHandler {
   private Driver neo4jDriver;
   private String ID;
-  private JSONObject getResponse;
+  private Map getResponse;
 
   //constructor
   public getActor(neo4j database) {
@@ -44,9 +45,9 @@ public class getActor implements HttpHandler {
   {
     try ( Session session = neo4jDriver.session() )
     {
-      getResponse = session.writeTransaction( new TransactionWork<JSONObject>() {
+      getResponse = session.writeTransaction( new TransactionWork<Map>() {
         @Override
-        public JSONObject execute(Transaction tx) {
+        public Map execute(Transaction tx) {
           try {
             return getActorData(tx, ID);
           } catch (JSONException e) {
@@ -57,46 +58,22 @@ public class getActor implements HttpHandler {
       });
     }
   }
-  private static JSONObject getActorData(Transaction tx, String ID) throws JSONException {
+  private static Map getActorData(Transaction tx, String ID) throws JSONException {
     System.out.println(ID);
 
     StatementResult result = tx.run("MATCH (a:Actor{actorID:$actorID})-" +
-            "[ACTED_IN]->(m:Movie) RETURN a.actorID, a.name, m.movieID",
+            "[ACTED_IN]->(m:Movie) " +
+            "RETURN a.actorID as actorID, a.name as name, collect(m.movieID) as movies",
         parameters("actorID", ID));
     //Get values from neo4j StatementResult object
 
     System.out.println("getActorData is running:");
-    JSONObject jsonReturn = new JSONObject();
-    JSONArray movies = new JSONArray();
+    //Get values from neo4j StatementResult object
+    List<Record> records = result.list();
+    Record record = records.get(0);
+    Map recordMap = record.asMap();
 
-    while (result.hasNext() == true){
-      Record record = result.next();
-      if (record.get("a.actorID") != null){
-        System.out.println(record.get("a.actorID").toString());
-        System.out.println(record.get("a.actorID"));
-
-        jsonReturn.put("actorID", record.get("a.actorID").toString());
-      }
-      if (record.get("a.name") != null){
-        jsonReturn.put("name", record.get("a.name").toString());
-      }
-      movies.put(record.get("m.movieID").toString());
-    }
-    jsonReturn.put("movies", movies);
-
-    JSONObject abc = new JSONObject();
-    abc.put("123", "123");
-    abc.put("234", "234");
-    abc.put("345", "234");
-    System.out.println(abc);
-
-    System.out.println(jsonReturn.toString());
-    System.out.println(movies.getString(0));
-    System.out.println(movies.get(0).toString());
-    System.out.println(movies.get(0).toString().getClass());
-    System.out.println(movies.get(0).getClass());
-
-    return jsonReturn;
+    return recordMap;
   }
 
 
@@ -104,8 +81,8 @@ public class getActor implements HttpHandler {
     String body = Utils.convert(r.getRequestBody());
     JSONObject deserialized = new JSONObject(body);
 
-    // See body and deserilized
-    System.out.println("addActor HandleGet :");
+    //See body and deserilized
+    System.out.println("addActor-HandelGet get input:");
     System.out.println(deserialized);
 
     if (deserialized.has("actorID"))
@@ -113,9 +90,17 @@ public class getActor implements HttpHandler {
 
     //Interaction with database + assign values to JSONObjects already
     get(ID);
-    byte[] result = getResponse.toString().getBytes();
 
-    r.sendResponseHeaders(200, result.length);
+    JSONObject response = new JSONObject(getResponse);
+    byte[] result = response.toString().getBytes();
+
+    if (result != null){
+      r.sendResponseHeaders(200, result.length);
+    }
+    else{
+      r.sendResponseHeaders(400, result.length);
+    }
+
     OutputStream os = r.getResponseBody();
     os.write(result);
     os.close();

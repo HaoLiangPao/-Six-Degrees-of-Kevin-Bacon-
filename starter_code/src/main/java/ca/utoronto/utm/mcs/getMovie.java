@@ -1,6 +1,4 @@
 package ca.utoronto.utm.mcs;
-
-    import static org.neo4j.driver.v1.Values.ofList;
     import static org.neo4j.driver.v1.Values.parameters;
 
     import com.sun.net.httpserver.HttpExchange;
@@ -9,7 +7,6 @@ package ca.utoronto.utm.mcs;
     import java.io.OutputStream;
     import java.util.List;
     import java.util.Map;
-    import org.json.JSONArray;
     import org.json.JSONException;
     import org.json.JSONObject;
     import org.neo4j.driver.v1.Driver;
@@ -24,7 +21,7 @@ public class getMovie implements HttpHandler {
   private Driver neo4jDriver;
   private String name;
   private String ID;
-  private JSONObject response;
+  private Map getResponse;
 
   //constructor
   public getMovie(neo4j database) {
@@ -53,6 +50,8 @@ public class getMovie implements HttpHandler {
 
     //interaction with database
     get(ID);
+
+    JSONObject response = new JSONObject(getResponse);
     byte[] result = response.toString().getBytes();
 
     r.sendResponseHeaders(200, result.length);
@@ -64,49 +63,30 @@ public class getMovie implements HttpHandler {
   public void get(String ID){
     try (Session session = neo4jDriver.session())
     {
-      response = session.writeTransaction( new TransactionWork<JSONObject>() {
+      getResponse = session.writeTransaction( new TransactionWork<Map>() {
         @Override
-        public JSONObject execute(Transaction tx) {
-          try {
-            return getMovieData(tx, ID);
-          } catch (JSONException e) {
-            e.printStackTrace();
-          }
-          return null;
+        public Map execute(Transaction tx) {
+          return getMovieData(tx, ID);
         }
       });
     }
   }
 
-  public JSONObject getMovieData(Transaction tx, String ID) throws JSONException {
+  public Map getMovieData(Transaction tx, String ID){
 
     //if the same movie is added twice, only one node should be created
 
 
     StatementResult result = tx.run("MATCH (m:Movie{movieID:$movieID})<-" +
-            "[ACTED_IN]-(a:Actor) RETURN m.movieID, m.name, a.actorID",
+            "[ACTED_IN]-(a:Actor) " +
+            "RETURN m.movieID as movieID, m.name as name, collect(a.actorID) as actors",
         parameters("movieID", ID));
 
     //Get values from neo4j StatementResult object
+    List<Record> records = result.list();
+    Record record = records.get(0);
+    Map recordMap = record.asMap();
 
-    System.out.println("getMovie is running:");
-    JSONObject jsonReturn = new JSONObject();
-    JSONArray actors = new JSONArray();
-
-    while (result.hasNext() == true){
-      Record record = result.next();
-      actors.put(record.get("a.actorID"));
-      if (record.get("m.movieID") != null){
-        jsonReturn.put("movieID", record.get("m.movieID"));
-      }
-      if (record.get("m.name") != null){
-        jsonReturn.put("name", record.get("m.name"));
-      }
-    }
-    jsonReturn.put("actors", actors);
-
-    System.out.println(jsonReturn.toString());
-
-    return jsonReturn;
+    return recordMap;
   }
 }

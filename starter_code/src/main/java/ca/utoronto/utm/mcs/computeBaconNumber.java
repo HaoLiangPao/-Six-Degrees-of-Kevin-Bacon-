@@ -52,8 +52,7 @@ public class computeBaconNumber implements HttpHandler {
     //interaction with database
     get(actorID, baconID);
     //result for server-client interaction
-    JSONObject responseJSON = new JSONObject();
-    responseJSON.put("baconNumber", getResponse.get("Number"));
+    JSONObject responseJSON = new JSONObject(getResponse);
     byte[] result = responseJSON.toString().getBytes();
 
     r.sendResponseHeaders(200, 0);
@@ -78,13 +77,10 @@ public class computeBaconNumber implements HttpHandler {
   private static Map getRelationshipData(Transaction tx, String actorID, String baconID) {
     StatementResult result = tx.run("MATCH p=shortestPath((a:Actor{actorID:$actorID})-[*]-" +
             "(b:Actor{actorID:$baconID})) " +
-            "RETURN length(p) as Number",
+            "RETURN length(p) as baconNumber",
         parameters("actorID", actorID, "baconID", baconID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
-
-    System.out.println(records);
-
     Record record = records.get(0);
     Map recordMap = record.asMap();
 

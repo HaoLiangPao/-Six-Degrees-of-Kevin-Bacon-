@@ -34,7 +34,7 @@ public class App
         server.createContext("/api/v1/getActor", new getActor(database));
         server.createContext("/api/v1/getMovie", new getMovie(database));
         server.createContext("/api/v1/hasRelationship", new hasRelationship(database));
-//        server.createContext("/api/v1/computeBaconPath", new computBaconPath());
+        server.createContext("/api/v1/computeBaconPath", new computBaconPath(database));
         server.createContext("/api/v1/computeBaconNumber", new computeBaconNumber(database));
 
         server.start();
