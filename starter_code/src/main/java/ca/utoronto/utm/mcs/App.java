@@ -15,10 +15,6 @@ public class App
         String user = "neo4j";
         String password = "123456";
         neo4j database = new neo4j(url, user, password);
-        System.out.println(database.getDriver());
-
-        //Read TSV file
-        TsvReader actors = new TsvReader("/Users/lianghao/Desktop/CSCC01/CSCC01-A1/starter_code/src/main/java/ca/utoronto/utm/mcs/actors-testing.tsv");
 
         server.createContext("/api/v1/addActor", new addActor(database));
         server.createContext("/api/v1/addMovie", new addMovie(database));
