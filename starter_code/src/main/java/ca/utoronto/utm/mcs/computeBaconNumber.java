@@ -23,6 +23,7 @@ public class computeBaconNumber implements HttpHandler {
   private String actorID;
   private String baconID = "1";
   private Map getResponse;
+  private byte[] result;
 
   //constructor
   public computeBaconNumber(neo4j database){
@@ -46,15 +47,27 @@ public class computeBaconNumber implements HttpHandler {
     System.out.println("getRelationship handler get:");
     System.out.println(deserialized);
 
-    if (deserialized.has("actorID"))
+    if (deserialized.has("actorID")) {
       actorID = deserialized.getString("actorID");
+    }
 
-    //interaction with database
-    get(actorID, baconID);
-    //result for server-client interaction
-    JSONObject responseJSON = new JSONObject(getResponse);
-    byte[] result = responseJSON.toString().getBytes();
+    System.out.println(actorID);
+    System.out.println(baconID);
+    System.out.println(actorID == baconID);
+    System.out.println(actorID.equals(baconID));
 
+    if (!actorID.equals(baconID)){
+      //interaction with database
+      get(actorID, baconID);
+      //result for server-client interaction
+      JSONObject responseJSON = new JSONObject(getResponse);
+      result = responseJSON.toString().getBytes();
+    }
+    else {
+      JSONObject responseJSON = new JSONObject(getResponse);
+      responseJSON.put("baconNumber", "0");
+      result = responseJSON.toString().getBytes();
+    }
     r.sendResponseHeaders(200, 0);
     OutputStream os = r.getResponseBody();
     os.write(result);
@@ -77,7 +90,7 @@ public class computeBaconNumber implements HttpHandler {
   private static Map getRelationshipData(Transaction tx, String actorID, String baconID) {
     StatementResult result = tx.run("MATCH p=shortestPath((a:Actor{actorID:$actorID})-[*]-" +
             "(b:Actor{actorID:$baconID})) " +
-            "RETURN length(p) as baconNumber",
+            "RETURN length(p)/2 as baconNumber",
         parameters("actorID", actorID, "baconID", baconID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();

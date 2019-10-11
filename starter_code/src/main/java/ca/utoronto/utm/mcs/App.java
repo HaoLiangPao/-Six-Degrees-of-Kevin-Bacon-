@@ -1,15 +1,7 @@
 package ca.utoronto.utm.mcs;
 
-import com.sun.net.httpserver.HttpHandler;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpServer;
-import org.neo4j.driver.v1.AuthTokens;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
-import org.neo4j.driver.v1.TransactionWork;
 
 public class App
 {
@@ -34,7 +26,7 @@ public class App
         server.createContext("/api/v1/getActor", new getActor(database));
         server.createContext("/api/v1/getMovie", new getMovie(database));
         server.createContext("/api/v1/hasRelationship", new hasRelationship(database));
-        server.createContext("/api/v1/computeBaconPath", new computBaconPath(database));
+        server.createContext("/api/v1/computeBaconPath", new computeBaconPath(database));
         server.createContext("/api/v1/computeBaconNumber", new computeBaconNumber(database));
 
         server.start();
