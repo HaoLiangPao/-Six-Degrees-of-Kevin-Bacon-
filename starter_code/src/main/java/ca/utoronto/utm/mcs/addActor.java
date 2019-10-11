@@ -72,34 +72,61 @@ public class addActor implements HttpHandler {
   }
 
   public void handlePut(HttpExchange r) throws IOException, JSONException {
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-
-    // See body and deserilized
-    System.out.println(body);
-    System.out.println(deserialized);
-
-
-    if (deserialized.has("name"))
-      name = deserialized.getString("name");
-
-    if (deserialized.has("actorID"))
-      ID = deserialized.getString("actorID");
-
-    //interaction with database
-    // what if name or ID is none??
-    add(name, ID);
-
-    //result for server-client interaction
-    JSONObject responseJSON = new JSONObject();
-    responseJSON.put("name", addResponse.get("a.name"));
-    responseJSON.put("actorID", addResponse.get("a.id"));
-    byte[] result = responseJSON.toString().getBytes();
-
-    r.sendResponseHeaders(200, result.length);
-    OutputStream os = r.getResponseBody();
-    os.write(result);
-    os.close();
+	  try {
+	  	String body = Utils.convert(r.getRequestBody());
+	  	JSONObject deserialized = new JSONObject(body);
+	
+	  	// See body and deserilized
+	    System.out.println(body);
+	    System.out.println(deserialized);
+	    if (!deserialized.has("name") || !deserialized.has("actorID")) {
+	    	r.sendResponseHeaders(400, -1);
+	    }
+	    else {
+	    	name = deserialized.getString("name");
+	    	ID = deserialized.getString("actorID");
+	    	//interaction with database
+		    // what if name or ID is none??
+		    add(name, ID);
+		
+		    //result for server-client interaction
+		    JSONObject responseJSON = new JSONObject();
+		    responseJSON.put("name", addResponse.get("a.name"));
+		    responseJSON.put("actorID", addResponse.get("a.id"));
+		    byte[] result = responseJSON.toString().getBytes();
+		
+		    r.sendResponseHeaders(200, result.length);
+		    OutputStream os = r.getResponseBody();
+		    os.write(result);
+		    os.close();
+	    }
+	  }
+	 catch(Exception e) {
+		  r.sendResponseHeaders(500, -1);
+	//  }
+	
+	/*
+	    if (deserialized.has("name"))
+	      name = deserialized.getString("name");
+	
+	    if (deserialized.has("actorID"))
+	      ID = deserialized.getString("actorID");
+	    //interaction with database
+	    // what if name or ID is none??
+	    add(name, ID);
+	
+	    //result for server-client interaction
+	    JSONObject responseJSON = new JSONObject();
+	    responseJSON.put("name", addResponse.get("a.name"));
+	    responseJSON.put("actorID", addResponse.get("a.id"));
+	    byte[] result = responseJSON.toString().getBytes();
+	
+	    r.sendResponseHeaders(200, result.length);
+	    OutputStream os = r.getResponseBody();
+	    os.write(result);
+	    os.close();
+	    */
+	  }
   }
 
 }

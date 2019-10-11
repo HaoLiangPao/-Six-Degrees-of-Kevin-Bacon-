@@ -39,25 +39,33 @@ public class getMovie implements HttpHandler {
   }
 
   public void handleGet(HttpExchange r) throws IOException, JSONException {
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-
-    System.out.println("addMovie handler get:");
-    System.out.println(deserialized);
-
-    if (deserialized.has("movieID"))
-      ID = deserialized.getString("movieID");
-
-    //interaction with database
-    get(ID);
-
-    JSONObject response = new JSONObject(getResponse);
-    byte[] result = response.toString().getBytes();
-
-    r.sendResponseHeaders(200, result.length);
-    OutputStream os = r.getResponseBody();
-    os.write(result);
-    os.close();
+	  try {
+	    String body = Utils.convert(r.getRequestBody());
+	    JSONObject deserialized = new JSONObject(body);
+	
+	    System.out.println("addMovie handler get:");
+	    System.out.println(deserialized);
+	    if (!deserialized.has("movieID")) {
+	    	r.sendResponseHeaders(400, -1);
+	    }
+	    else {
+		    ID = deserialized.getString("movieID");
+		
+		    //interaction with database
+		    get(ID);
+		
+		    JSONObject response = new JSONObject(getResponse);
+		    byte[] result = response.toString().getBytes();
+		
+		    r.sendResponseHeaders(200, result.length);
+		    OutputStream os = r.getResponseBody();
+		    os.write(result);
+		    os.close();
+	    }
+		  }
+	catch(Exception e) {
+		r.sendResponseHeaders(500, -1);
+	}
   }
 
   public void get(String ID){

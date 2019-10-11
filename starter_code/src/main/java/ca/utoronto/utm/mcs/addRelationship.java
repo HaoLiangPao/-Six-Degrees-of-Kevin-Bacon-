@@ -41,24 +41,30 @@ public class addRelationship implements HttpHandler {
   }
 
   public void handlePut(HttpExchange r) throws IOException, JSONException {
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-
-    System.out.println("addRelationship handler get:");
-    System.out.println(deserialized);
-
-    if (deserialized.has("actorID"))
-      actorID = deserialized.getString("actorID");
-
-    if (deserialized.has("movieID"))
-      movieID = deserialized.getString("movieID");
-
-    //interaction with database
-    add(actorID, movieID);
-
-    r.sendResponseHeaders(200, 0);
-    OutputStream os = r.getResponseBody();
-    os.close();
+	  try {
+	    String body = Utils.convert(r.getRequestBody());
+	    JSONObject deserialized = new JSONObject(body);
+	
+	    System.out.println("addRelationship handler get:");
+	    System.out.println(deserialized);
+	    if (!deserialized.has("actorID") || !deserialized.has("movieID")) {
+	    	r.sendResponseHeaders(400, -1);
+	    }
+	    else {
+		    actorID = deserialized.getString("actorID");
+		    movieID = deserialized.getString("movieID");
+		
+		    //interaction with database
+		    add(actorID, movieID);
+		
+		    r.sendResponseHeaders(200, 0);
+		    OutputStream os = r.getResponseBody();
+		    os.close();
+	    }
+		  }
+	catch(Exception e) {
+		r.sendResponseHeaders(500, -1);
+	}
   }
 
   public void add(String actorID, String movieID){

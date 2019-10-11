@@ -41,30 +41,36 @@ public class addMovie implements HttpHandler {
   }
 
   public void handlePut(HttpExchange r) throws IOException, JSONException {
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-
-    System.out.println("addMovie handler get:");
-    System.out.println(deserialized);
-
-    if (deserialized.has("name"))
-      name = deserialized.getString("name");
-
-    if (deserialized.has("movieID"))
-      ID = deserialized.getString("movieID");
-
-    //interaction with database
-    add(name, ID);
-    //result for server-client interaction
-    JSONObject responseJSON = new JSONObject();
-    responseJSON.put("name", response.get("m.name"));
-    responseJSON.put("movieID", response.get("m.id"));
-    byte[] result = responseJSON.toString().getBytes();
-
-    r.sendResponseHeaders(200, result.length);
-    OutputStream os = r.getResponseBody();
-    os.write(result);
-    os.close();
+	  try {
+	    String body = Utils.convert(r.getRequestBody());
+	    JSONObject deserialized = new JSONObject(body);
+	
+	    System.out.println("addMovie handler get:");
+	    System.out.println(deserialized);
+	    if (!deserialized.has("name") || !deserialized.has("movieID")) {
+	    	r.sendResponseHeaders(400, -1);
+	    }
+	    else {
+		    name = deserialized.getString("name");
+		    ID = deserialized.getString("movieID");
+		
+		    //interaction with database
+		    add(name, ID);
+		    //result for server-client interaction
+		    JSONObject responseJSON = new JSONObject();
+		    responseJSON.put("name", response.get("m.name"));
+		    responseJSON.put("movieID", response.get("m.id"));
+		    byte[] result = responseJSON.toString().getBytes();
+		
+		    r.sendResponseHeaders(200, result.length);
+		    OutputStream os = r.getResponseBody();
+		    os.write(result);
+		    os.close();
+	    	}
+	  	}
+	 catch(Exception e) {
+		 r.sendResponseHeaders(500, -1);
+	 }
   }
 
   public void add(String name, String ID){

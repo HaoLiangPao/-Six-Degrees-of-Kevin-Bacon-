@@ -40,31 +40,37 @@ public class hasRelationship implements HttpHandler {
   }
 
   public void handleGet(HttpExchange r) throws IOException, JSONException {
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-
-    System.out.println("getRelationship handler get:");
-    System.out.println(deserialized);
-
-    if (deserialized.has("actorID"))
-      actorID = deserialized.getString("actorID");
-
-    if (deserialized.has("movieID"))
-      movieID = deserialized.getString("movieID");
-
-    //interaction with database
-    get(actorID, movieID);
-    //result for server-client interaction
-    JSONObject responseJSON = new JSONObject();
-    responseJSON.put("actorID", getResponse.get("a.id"));
-    responseJSON.put("movieID", getResponse.get("m.id"));
-    responseJSON.put("hasRelationship", getResponse.get("b"));
-    byte[] result = responseJSON.toString().getBytes();
-
-    r.sendResponseHeaders(200, 0);
-    OutputStream os = r.getResponseBody();
-    os.write(result);
-    os.close();
+	  try {
+	    String body = Utils.convert(r.getRequestBody());
+	    JSONObject deserialized = new JSONObject(body);
+	
+	    System.out.println("getRelationship handler get:");
+	    System.out.println(deserialized);
+	    if (!deserialized.has("actorID") || !deserialized.has("movieID")) {
+	    	r.sendResponseHeaders(400, -1);
+	    }
+	    else {
+		    actorID = deserialized.getString("actorID");
+		    movieID = deserialized.getString("movieID");
+		
+		    //interaction with database
+		    get(actorID, movieID);
+		    //result for server-client interaction
+		    JSONObject responseJSON = new JSONObject();
+		    responseJSON.put("actorID", getResponse.get("a.id"));
+		    responseJSON.put("movieID", getResponse.get("m.id"));
+		    responseJSON.put("hasRelationship", getResponse.get("b"));
+		    byte[] result = responseJSON.toString().getBytes();
+		
+		    r.sendResponseHeaders(200, 0);
+		    OutputStream os = r.getResponseBody();
+		    os.write(result);
+		    os.close();
+	    }
+		  }
+	catch(Exception e) {
+		r.sendResponseHeaders(500, -1);
+	}
   }
 
   public void get( final String actorID, final String movieID)
