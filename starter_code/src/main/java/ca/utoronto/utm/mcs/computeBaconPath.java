@@ -44,59 +44,74 @@ public class computeBaconPath implements HttpHandler {
   }
 
   public void handleGet(HttpExchange r) throws IOException, JSONException {
+    //get Request variables
     String body = Utils.convert(r.getRequestBody());
     JSONObject deserialized = new JSONObject(body);
-
+    JSONObject responseJSON = new JSONObject();
     System.out.println("getRelationship handler get:");
     System.out.println(deserialized);
-
     if (deserialized.has("actorID"))
       actorID = deserialized.getString("actorID");
-
+    //normal case to compute a baconNumber&baconPath
     if (!actorID.equals(baconID)){
       //interaction with database
       get(actorID, baconID);
-      //result for server-client interaction
-      JSONObject responseJSON = new JSONObject(getResponse);
-      //path object obtains baconPath return from database
-      InternalPath path = (InternalPath) responseJSON.get("baconPath");
-      Iterable<Node> nodeIterable = path.nodes();
-
-      ArrayList<JSONObject> baconPath = new ArrayList<JSONObject>();
-      //two lists for value storing
-      ArrayList<String> actors = new ArrayList<String>();
-      ArrayList<String> movies = new ArrayList<String>();
-
-      //iterate nodes in baconPath
-      for (Node node: nodeIterable
-      ) {
-        Map nodeMap = node.asMap();
-        String aID = "";
-        String mID = "";
-        if (nodeMap.get("actorID") != null){
-          aID = nodeMap.get("actorID").toString();
-          actors.add(aID);
-        }
-        else {
-          mID = nodeMap.get("movieID").toString();
-          movies.add(mID);
-        }
-        System.out.println(actors);
-        System.out.println(movies);
-      }
-
+      //add baconNumber response
+      responseJSON.put("baconNumber", getResponse.get("baconNumber"));
+      //add baconPath in a list<JSONObject> form
+      responseJSON.put("baconPath", createBaconPath(getResponse));
+      //write to a byte[] for OutputStream
       result = responseJSON.toString().getBytes();
     }
     else {
-      JSONObject responseJSON = new JSONObject();
       responseJSON.put("baconNumber", "0");
       result = responseJSON.toString().getBytes();
     }
-
     r.sendResponseHeaders(200, 0);
     OutputStream os = r.getResponseBody();
     os.write(result);
     os.close();
+  }
+
+
+  private List<JSONObject> createBaconPath(Map response) throws JSONException {
+    //change format of data from: Path ->Iterable<Node> ->List<JSONObject>
+    InternalPath path = (InternalPath) response.get("baconPath");
+    Iterable<Node> nodeIterable = path.nodes();
+    List<JSONObject> baconPath = new ArrayList<JSONObject>();//for baconPath return
+    //change format of data from: Nodes ->Two Lists
+    List<String> actorsINPATH = new ArrayList<String>();
+    List<String> moviesINPATH = new ArrayList<String>();
+    for (Node node: nodeIterable
+    ) {
+      Map nodeMap = node.asMap();
+      String aID,mID = "";
+      if (nodeMap.get("actorID") != null){
+        aID = nodeMap.get("actorID").toString();
+        actorsINPATH.add(aID);
+      }
+      else {
+        mID = nodeMap.get("movieID").toString();
+        moviesINPATH.add(mID);
+      }
+    }
+    //implementing baconPath
+    Integer index = 0;
+    while (index < actorsINPATH.size()) {
+      JSONObject pathPoint = new JSONObject();
+      pathPoint.put("actorID", actorsINPATH.get(index));
+      //movie list always has one item less than actor node
+      if (index == moviesINPATH.size()) {
+        //put the last movie again with Kevin Bacon
+        pathPoint.put("movieID", moviesINPATH.get(index - 1));
+      }
+      //normal combination as a slice in baconPath
+      else { pathPoint.put("movieID", moviesINPATH.get(index)); }
+      index += 1;
+      //add slice of baconPath to 'complete path' list
+      baconPath.add(pathPoint);
+    }
+    return baconPath;
   }
 
   public void get( final String actorID, final String movieID)
