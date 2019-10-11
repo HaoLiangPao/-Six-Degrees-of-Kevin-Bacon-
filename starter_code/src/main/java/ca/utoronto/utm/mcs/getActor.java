@@ -61,9 +61,9 @@ public class getActor implements HttpHandler {
   private static Map getActorData(Transaction tx, String ID) throws JSONException {
     System.out.println(ID);
 
-    StatementResult result = tx.run("MATCH (a:Actor{actorID:$actorID})-" +
+    StatementResult result = tx.run("MATCH (a:Actor{id:$actorID})-" +
             "[ACTED_IN]->(m:Movie) " +
-            "RETURN a.actorID as actorID, a.name as name, collect(m.movieID) as movies",
+            "RETURN a.id as actorID, a.name as name, collect(m.id) as movies",
         parameters("actorID", ID));
     //Get values from neo4j StatementResult object
 

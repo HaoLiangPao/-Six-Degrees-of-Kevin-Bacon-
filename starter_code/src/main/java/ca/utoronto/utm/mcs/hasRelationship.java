@@ -56,8 +56,8 @@ public class hasRelationship implements HttpHandler {
     get(actorID, movieID);
     //result for server-client interaction
     JSONObject responseJSON = new JSONObject();
-    responseJSON.put("actorID", getResponse.get("a.actorID"));
-    responseJSON.put("movieID", getResponse.get("m.movieID"));
+    responseJSON.put("actorID", getResponse.get("a.id"));
+    responseJSON.put("movieID", getResponse.get("m.id"));
     responseJSON.put("hasRelationship", getResponse.get("b"));
     byte[] result = responseJSON.toString().getBytes();
 
@@ -81,9 +81,9 @@ public class hasRelationship implements HttpHandler {
   }
 
   private static Map getRelationshipData(Transaction tx, String actorID, String movieID) {
-    StatementResult result = tx.run("match (a:Actor{actorID:$actorID}), " +
-            "(m:Movie{movieID:$movieID})" +
-            "RETURN a.actorID, m.movieID, exists((a)-[:ACTED_IN]->(m)) as b",
+    StatementResult result = tx.run("match (a:Actor{id:$actorID}), " +
+            "(m:Movie{id:$movieID})" +
+            "RETURN a.id, m.id, exists((a)-[:ACTED_IN]->(m)) as b",
         parameters("actorID", actorID, "movieID", movieID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
