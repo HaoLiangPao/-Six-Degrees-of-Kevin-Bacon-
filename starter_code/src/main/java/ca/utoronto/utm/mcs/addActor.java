@@ -27,8 +27,6 @@ public class addActor implements HttpHandler {
   //constructor
   public addActor(neo4j database){
     neo4jDriver = database.getDriver();
-    System.out.println("neo4jDriver is set");
-    System.out.println(neo4jDriver.toString());
   }
 
   public void handle(HttpExchange r) {
@@ -36,18 +34,20 @@ public class addActor implements HttpHandler {
       if (r.getRequestMethod().equals("PUT")) {
         handlePut(r);
       }
+      //Undefined HTTP methods used on valid endPoint
+      else{
+        r.sendResponseHeaders(500, -1);
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
 
-  public void add(String name, String ID )
+  private void add(String name, String ID )
   {
-    System.out.println("private add function is running");
     try ( Session session = neo4jDriver.session() )
     {
-      System.out.println("session is created");
       addResponse = session.writeTransaction( new TransactionWork<Map>() {
         @Override
         public Map execute(Transaction tx) {
@@ -55,13 +55,11 @@ public class addActor implements HttpHandler {
         }
       });
     }
-    System.out.println(neo4jDriver.session());
   }
 
   private static Map createActor(Transaction tx, String name, String ID){
-    System.out.println("private function creatActor is running");
     StatementResult result = tx.run( "MERGE (a:Actor{id:$actorID}) " +
-            "ON CREATE SET a.name = $name " +
+            "SET a.name = $name " +
             "RETURN a.name, a.id",
         parameters("name", name , "actorID", ID));
     //Get values from neo4j StatementResult object
@@ -71,63 +69,38 @@ public class addActor implements HttpHandler {
     return recordMap;
   }
 
-  public void handlePut(HttpExchange r) throws IOException, JSONException {
+  private void handlePut(HttpExchange r) throws IOException {
 	  try {
 	  	String body = Utils.convert(r.getRequestBody());
 	  	JSONObject deserialized = new JSONObject(body);
-	
-	  	// See body and deserilized
-	    System.out.println(body);
-	    System.out.println(deserialized);
+	    //If either name or actorID is not given return 400 as BAD REQUEST
 	    if (!deserialized.has("name") || !deserialized.has("actorID")) {
 	    	r.sendResponseHeaders(400, -1);
 	    }
+	    //Interacted with database and add actor, then return 200 as OK
 	    else {
 	    	name = deserialized.getString("name");
 	    	ID = deserialized.getString("actorID");
 	    	//interaction with database
-		    // what if name or ID is none??
 		    add(name, ID);
-		
 		    //result for server-client interaction
 		    JSONObject responseJSON = new JSONObject();
 		    responseJSON.put("name", addResponse.get("a.name"));
 		    responseJSON.put("actorID", addResponse.get("a.id"));
 		    byte[] result = responseJSON.toString().getBytes();
-		
-		    r.sendResponseHeaders(200, result.length);
+		    r.sendResponseHeaders(200, 0);
 		    OutputStream os = r.getResponseBody();
-		    os.write(result);
 		    os.close();
 	    }
 	  }
-	 catch(Exception e) {
-		  r.sendResponseHeaders(500, -1);
-	//  }
-	
-	/*
-	    if (deserialized.has("name"))
-	      name = deserialized.getString("name");
-	
-	    if (deserialized.has("actorID"))
-	      ID = deserialized.getString("actorID");
-	    //interaction with database
-	    // what if name or ID is none??
-	    add(name, ID);
-	
-	    //result for server-client interaction
-	    JSONObject responseJSON = new JSONObject();
-	    responseJSON.put("name", addResponse.get("a.name"));
-	    responseJSON.put("actorID", addResponse.get("a.id"));
-	    byte[] result = responseJSON.toString().getBytes();
-	
-	    r.sendResponseHeaders(200, result.length);
-	    OutputStream os = r.getResponseBody();
-	    os.write(result);
-	    os.close();
-	    */
-	  }
+    //if deserilized failed, (ex: JSONObeject Null Value)
+    catch(JSONException e) {
+      r.sendResponseHeaders(400, -1);
+    }
+    //if server connection / database connection failed
+    catch(Exception e) {
+      r.sendResponseHeaders(500, -1);
+    }
   }
-
 }
 

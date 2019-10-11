@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONException;
@@ -23,6 +24,7 @@ public class hasRelationship implements HttpHandler {
   private String actorID;
   private String movieID;
   private Map getResponse;
+  private byte[] result;
 
   //constructor
   public hasRelationship(neo4j database){
@@ -34,46 +36,59 @@ public class hasRelationship implements HttpHandler {
       if (r.getRequestMethod().equals("GET")) {
         handleGet(r);
       }
+      //Undefined HTTP methods used on valid endPoint
+      else{
+        r.sendResponseHeaders(500, -1);
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  public void handleGet(HttpExchange r) throws IOException, JSONException {
+  private void handleGet(HttpExchange r) throws IOException, JSONException {
 	  try {
 	    String body = Utils.convert(r.getRequestBody());
 	    JSONObject deserialized = new JSONObject(body);
-	
-	    System.out.println("getRelationship handler get:");
-	    System.out.println(deserialized);
+	    //If either movieID or actorID is not given return 400 as BAD REQUEST
 	    if (!deserialized.has("actorID") || !deserialized.has("movieID")) {
 	    	r.sendResponseHeaders(400, -1);
 	    }
 	    else {
 		    actorID = deserialized.getString("actorID");
 		    movieID = deserialized.getString("movieID");
-		
 		    //interaction with database
 		    get(actorID, movieID);
 		    //result for server-client interaction
 		    JSONObject responseJSON = new JSONObject();
 		    responseJSON.put("actorID", getResponse.get("a.id"));
-		    responseJSON.put("movieID", getResponse.get("m.id"));
-		    responseJSON.put("hasRelationship", getResponse.get("b"));
-		    byte[] result = responseJSON.toString().getBytes();
-		
-		    r.sendResponseHeaders(200, 0);
-		    OutputStream os = r.getResponseBody();
-		    os.write(result);
-		    os.close();
+        responseJSON.put("movieID", getResponse.get("m.id"));
+        responseJSON.put("hasRelationship", getResponse.get("b"));
+        OutputStream os = r.getResponseBody();
+        //valid actorID passed in and valid result responded by database
+        if (responseJSON.length() != 0) {
+          result = responseJSON.toString().getBytes();
+          r.sendResponseHeaders(200, result.length);
+          //write to a byte[] for OutputStream
+          os.write(result);
+        }
+        //actorID not found in the database and 404 return as NO DATA FOUND
+        else {
+          r.sendResponseHeaders(404, -1);
+        }
+        os.close();
 	    }
-		  }
-	catch(Exception e) {
-		r.sendResponseHeaders(500, -1);
-	}
+	  }
+    //if deserilized failed, (ex: JSONObeject Null Value)
+    catch(JSONException e) {
+      r.sendResponseHeaders(400, -1);
+    }
+    //if server connection / database connection failed
+    catch(Exception e) {
+      r.sendResponseHeaders(500, -1);
+    }
   }
 
-  public void get( final String actorID, final String movieID)
+  private void get( final String actorID, final String movieID)
   {
     try ( Session session = neo4jDriver.session() )
     {
@@ -93,12 +108,12 @@ public class hasRelationship implements HttpHandler {
         parameters("actorID", actorID, "movieID", movieID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
-
-    System.out.println(records);
-
-    Record record = records.get(0);
-    Map recordMap = record.asMap();
-
+    Map recordMap = new HashMap();
+    //valid data responded from database
+    if (!records.isEmpty()){
+      Record record = records.get(0);
+      recordMap = record.asMap();
+    }
     return recordMap;
   }
 }

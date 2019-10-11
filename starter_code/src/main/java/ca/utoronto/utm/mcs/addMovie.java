@@ -1,6 +1,5 @@
 package ca.utoronto.utm.mcs;
 
-import static org.neo4j.driver.v1.Values.ofList;
 import static org.neo4j.driver.v1.Values.parameters;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -35,45 +34,45 @@ public class addMovie implements HttpHandler {
       if (r.getRequestMethod().equals("PUT")) {
         handlePut(r);
       }
+      //Undefined HTTP methods used on valid endPoint
+      else{
+        r.sendResponseHeaders(500, -1);
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  public void handlePut(HttpExchange r) throws IOException, JSONException {
+  private void handlePut(HttpExchange r) throws IOException, JSONException {
 	  try {
 	    String body = Utils.convert(r.getRequestBody());
 	    JSONObject deserialized = new JSONObject(body);
-	
-	    System.out.println("addMovie handler get:");
-	    System.out.println(deserialized);
+
+      //If either movieID or name is not given return 400 as BAD REQUEST
 	    if (!deserialized.has("name") || !deserialized.has("movieID")) {
 	    	r.sendResponseHeaders(400, -1);
 	    }
 	    else {
 		    name = deserialized.getString("name");
 		    ID = deserialized.getString("movieID");
-		
 		    //interaction with database
 		    add(name, ID);
-		    //result for server-client interaction
-		    JSONObject responseJSON = new JSONObject();
-		    responseJSON.put("name", response.get("m.name"));
-		    responseJSON.put("movieID", response.get("m.id"));
-		    byte[] result = responseJSON.toString().getBytes();
-		
-		    r.sendResponseHeaders(200, result.length);
+		    r.sendResponseHeaders(200, 0);
 		    OutputStream os = r.getResponseBody();
-		    os.write(result);
 		    os.close();
-	    	}
-	  	}
-	 catch(Exception e) {
-		 r.sendResponseHeaders(500, -1);
-	 }
+	    }
+	  }
+	  //if deserilized failed, (ex: JSONObeject Null Value)
+    catch(JSONException e) {
+	    r.sendResponseHeaders(400, -1);
+	  }
+	  //if server connection / database connection failed
+	  catch(Exception e) {
+	    r.sendResponseHeaders(500, -1);
+	  }
   }
 
-  public void add(String name, String ID){
+  private void add(String name, String ID){
     try (Session session = neo4jDriver.session())
     {
       response = session.writeTransaction( new TransactionWork<Map>() {
@@ -85,22 +84,16 @@ public class addMovie implements HttpHandler {
     }
   }
 
-  public Map createMovie(Transaction tx, String  name, String ID){
-
+  private Map createMovie(Transaction tx, String  name, String ID){
     //if the same movie is added twice, only one node should be created
-
-
     StatementResult result = tx.run("MERGE (m:Movie {id:$movieID}) " +
-        "ON CREATE SET m.name = $name " +
+        "SET m.name = $name " +
         "RETURN m.name, m.id",
         parameters("name", name , "movieID", ID));
-
-    System.out.println("\ncreateMovie is returning the result");
-    //Get values from neo4j StatementResult object
+    //Get values from: StatementResult ->Record ->Map
     List<Record> records = result.list();
     Record record = records.get(0);
     Map recordMap = record.asMap();
-
     return recordMap;
   }
 }

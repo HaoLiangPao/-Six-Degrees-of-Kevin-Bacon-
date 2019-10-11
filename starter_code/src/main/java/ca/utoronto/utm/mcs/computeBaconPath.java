@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONException;
@@ -24,9 +25,11 @@ public class computeBaconPath implements HttpHandler {
 
   private Driver neo4jDriver;
   private String actorID;
-  private String baconID = "1";
+  private String baconID = "nm0000102";
   private Map getResponse;
   private byte[] result;
+  private boolean baconExist;
+  private boolean actorExist;
 
   //constructor
   public computeBaconPath(neo4j database){
@@ -38,43 +41,84 @@ public class computeBaconPath implements HttpHandler {
       if (r.getRequestMethod().equals("GET")) {
         handleGet(r);
       }
+      //Undefined HTTP methods used on valid endPoint
+      else{
+        r.sendResponseHeaders(500, -1);
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  public void handleGet(HttpExchange r) throws IOException, JSONException {
-    //get Request variables
-    String body = Utils.convert(r.getRequestBody());
-    JSONObject deserialized = new JSONObject(body);
-    JSONObject responseJSON = new JSONObject();
-    System.out.println("getRelationship handler get:");
-    System.out.println(deserialized);
-    if (deserialized.has("actorID"))
-      actorID = deserialized.getString("actorID");
-    //normal case to compute a baconNumber&baconPath
-    if (!actorID.equals(baconID)){
-      //interaction with database
-      get(actorID, baconID);
-      //add baconNumber response
-      responseJSON.put("baconNumber", getResponse.get("baconNumber"));
-      //add baconPath in a list<JSONObject> form
-      responseJSON.put("baconPath", createBaconPath(getResponse));
-      //write to a byte[] for OutputStream
-      result = responseJSON.toString().getBytes();
+  private void handleGet(HttpExchange r) throws IOException, JSONException {
+    try {
+      //get Request variables
+      String body = Utils.convert(r.getRequestBody());
+      JSONObject deserialized = new JSONObject(body);
+      JSONObject responseJSON = new JSONObject();
+      OutputStream os = r.getResponseBody();
+
+      //If actorID is not given return 400 as BAD REQUEST
+      if (!deserialized.has("actorID")){
+        r.sendResponseHeaders(400, -1);
+      }
+      //actorID is given, then to test existence
+      else {
+        actorID = deserialized.getString("actorID");
+        //Test if Kevin Bacon is in the database
+        baconExist = test(baconID);
+        //Test if actorID input is in the database
+        actorExist = test(actorID);
+        //neither Kevin Bacon or actor is not existed in the database
+        //responded 400 as NO ACTOR EXIST
+        if ((!baconExist) || (!actorExist)){
+          r.sendResponseHeaders(400,-1);
+        }
+        //both actors existed, try to find the baconPath
+        else {
+          if (!actorID.equals(baconID)) {
+            //interaction with database to calculate baconPath
+            get(actorID, baconID);
+            try {
+              //add baconNumber response
+              responseJSON.put("baconNumber", getResponse.get("baconNumber"));
+              //add baconPath in a list<JSONObject> form
+              responseJSON.put("baconPath", createBaconPath(getResponse));
+            }
+            //actorID found but path not found in the database and 404 return as NO PATH FOUND
+            catch (NullPointerException e) {
+              r.sendResponseHeaders(404, -1);
+            }
+          }
+          //actorID given is the same as actorID for Kevin Bacon
+          else {
+            responseJSON.put("baconNumber", "0");
+            responseJSON.put("baconPath", "[]");
+          }
+          //valid actorID passed in and valid result responded by database
+          if (responseJSON.length() != 0) {
+            result = responseJSON.toString().getBytes();
+            r.sendResponseHeaders(200, result.length);
+            //write to a byte[] for OutputStream
+            os.write(result);
+          }
+        }
+      }
+      os.close();
     }
-    else {
-      responseJSON.put("baconNumber", "0");
-      result = responseJSON.toString().getBytes();
+    //if deserilized failed, (ex: JSONObeject Null Value)
+    catch(JSONException e) {
+      r.sendResponseHeaders(400, -1);
     }
-    r.sendResponseHeaders(200, 0);
-    OutputStream os = r.getResponseBody();
-    os.write(result);
-    os.close();
+    //if server connection / database connection failed
+    catch(Exception e) {
+      r.sendResponseHeaders(500, -1);
+    }
   }
 
 
   private List<JSONObject> createBaconPath(Map response) throws JSONException {
+    System.out.println("createBaconPath is running:");
     //change format of data from: Path ->Iterable<Node> ->List<JSONObject>
     InternalPath path = (InternalPath) response.get("baconPath");
     Iterable<Node> nodeIterable = path.nodes();
@@ -85,13 +129,14 @@ public class computeBaconPath implements HttpHandler {
     for (Node node: nodeIterable
     ) {
       Map nodeMap = node.asMap();
-      String aID,mID = "";
-      if (nodeMap.get("actorID") != null){
-        aID = nodeMap.get("actorID").toString();
+      String aID = "";
+      String mID = "";
+      if (node.hasLabel("Actor")){
+        aID = nodeMap.get("id").toString();
         actorsINPATH.add(aID);
       }
       else {
-        mID = nodeMap.get("movieID").toString();
+        mID = nodeMap.get("id").toString();
         moviesINPATH.add(mID);
       }
     }
@@ -100,6 +145,7 @@ public class computeBaconPath implements HttpHandler {
     while (index < actorsINPATH.size()) {
       JSONObject pathPoint = new JSONObject();
       pathPoint.put("actorID", actorsINPATH.get(index));
+
       //movie list always has one item less than actor node
       if (index == moviesINPATH.size()) {
         //put the last movie again with Kevin Bacon
@@ -114,29 +160,56 @@ public class computeBaconPath implements HttpHandler {
     return baconPath;
   }
 
-  public void get( final String actorID, final String movieID)
+  private void get( final String actorID, final String movieID)
   {
     try ( Session session = neo4jDriver.session() )
     {
       getResponse = session.writeTransaction( new TransactionWork<Map>() {
         @Override
         public Map execute(Transaction tx) {
-          return getRelationshipData(tx, actorID, movieID);
+          return getBaconPath(tx, actorID, movieID);
         }
       });
     }
   }
 
-  private static Map getRelationshipData(Transaction tx, String actorID, String baconID) {
-    StatementResult result = tx.run("MATCH p=shortestPath((a:Actor{actorID:$actorID})-[*]-" +
-            "(b:Actor{actorID:$baconID})) " +
+  private boolean test(final String actorID)
+  {
+    try ( Session session = neo4jDriver.session() )
+    {
+      boolean exist = session.writeTransaction( new TransactionWork<Boolean>() {
+        @Override
+        public Boolean execute(Transaction tx) {
+          return testActor(tx, actorID);
+        }
+      });
+      return exist;
+    }
+  }
+
+  private boolean testActor(Transaction tx, String actorID){
+    StatementResult result = tx.run("MATCH (a:Actor{id:$actorID}) " +
+            "RETURN a.id as actorID",
+        parameters("actorID", actorID));
+    //Get values from neo4j StatementResult object
+    List<Record> records = result.list();
+    return !records.isEmpty();
+  }
+
+  private static Map getBaconPath(Transaction tx, String actorID, String baconID) {
+    System.out.println("private method getBaconPath: is running");
+    StatementResult result = tx.run("MATCH p=shortestPath((a:Actor{id:$actorID})-[*]-" +
+            "(b:Actor{id:$baconID})) " +
             "RETURN length(p)/2 as baconNumber, p as baconPath",
         parameters("actorID", actorID, "baconID", baconID));
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
-    Record record = records.get(0);
-    Map recordMap = record.asMap();
-
+    Map recordMap = new HashMap();
+    //valid data responded from database
+    if (!records.isEmpty()){
+      Record record = records.get(0);
+      recordMap = record.asMap();
+    }
     return recordMap;
   }
 }

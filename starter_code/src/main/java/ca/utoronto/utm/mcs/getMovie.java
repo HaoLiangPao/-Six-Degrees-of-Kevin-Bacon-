@@ -5,6 +5,7 @@ package ca.utoronto.utm.mcs;
     import com.sun.net.httpserver.HttpHandler;
     import java.io.IOException;
     import java.io.OutputStream;
+    import java.util.HashMap;
     import java.util.List;
     import java.util.Map;
     import org.json.JSONException;
@@ -19,7 +20,6 @@ package ca.utoronto.utm.mcs;
 public class getMovie implements HttpHandler {
 
   private Driver neo4jDriver;
-  private String name;
   private String ID;
   private Map getResponse;
 
@@ -38,37 +38,47 @@ public class getMovie implements HttpHandler {
     }
   }
 
-  public void handleGet(HttpExchange r) throws IOException, JSONException {
+  private void handleGet(HttpExchange r) throws IOException, JSONException {
 	  try {
-	    String body = Utils.convert(r.getRequestBody());
-	    JSONObject deserialized = new JSONObject(body);
-	
-	    System.out.println("addMovie handler get:");
-	    System.out.println(deserialized);
-	    if (!deserialized.has("movieID")) {
-	    	r.sendResponseHeaders(400, -1);
-	    }
-	    else {
-		    ID = deserialized.getString("movieID");
-		
-		    //interaction with database
-		    get(ID);
-		
-		    JSONObject response = new JSONObject(getResponse);
-		    byte[] result = response.toString().getBytes();
-		
-		    r.sendResponseHeaders(200, result.length);
-		    OutputStream os = r.getResponseBody();
-		    os.write(result);
-		    os.close();
-	    }
-		  }
-	catch(Exception e) {
-		r.sendResponseHeaders(500, -1);
-	}
+      String body = Utils.convert(r.getRequestBody());
+      JSONObject deserialized = new JSONObject(body);
+
+      System.out.println("addMovie handler get:");
+      System.out.println(deserialized);
+      //If movieID is not given return 400 as BAD REQUEST
+      if (!deserialized.has("movieID")) {
+        r.sendResponseHeaders(400, -1);
+      } else {
+        ID = deserialized.getString("movieID");
+        //interaction with database
+        get(ID);
+        JSONObject responseJSON = new JSONObject(getResponse);
+        byte[] result = responseJSON.toString().getBytes();
+        OutputStream os = r.getResponseBody();
+        //valid actorID passed in and valid result responded by database
+        if (responseJSON.length() != 0) {
+          result = responseJSON.toString().getBytes();
+          r.sendResponseHeaders(200, result.length);
+          os.write(result);
+        }
+        //actorID not found in the database and 404 return as NO DATA FOUND
+        else{
+          r.sendResponseHeaders(404, -1);
+        }
+        os.close();
+      }
+    }
+	  //if deserilized failed, (ex: JSONObeject Null Value)
+    catch(JSONException e) {
+	    r.sendResponseHeaders(400, -1);
+	  }
+	  //if server connection / database connection failed
+    catch(Exception e) {
+	    r.sendResponseHeaders(500, -1);
+	  }
   }
 
-  public void get(String ID){
+  private void get(String ID){
     try (Session session = neo4jDriver.session())
     {
       getResponse = session.writeTransaction( new TransactionWork<Map>() {
@@ -80,21 +90,19 @@ public class getMovie implements HttpHandler {
     }
   }
 
-  public Map getMovieData(Transaction tx, String ID){
-
-    //if the same movie is added twice, only one node should be created
-
-
+  private Map getMovieData(Transaction tx, String ID){
     StatementResult result = tx.run("MATCH (m:Movie{id:$movieID})<-" +
             "[ACTED_IN]-(a:Actor) " +
             "RETURN m.id as movieID, m.name as name, collect(a.id) as actors",
         parameters("movieID", ID));
-
     //Get values from neo4j StatementResult object
     List<Record> records = result.list();
-    Record record = records.get(0);
-    Map recordMap = record.asMap();
-
+    Map recordMap = new HashMap();
+    //valid data responded from database
+    if (!records.isEmpty()){
+      Record record = records.get(0);
+      recordMap = record.asMap();
+    }
     return recordMap;
   }
 }
