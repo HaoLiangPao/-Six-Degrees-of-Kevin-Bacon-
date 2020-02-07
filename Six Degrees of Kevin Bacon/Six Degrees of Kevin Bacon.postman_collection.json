@@ -1,0 +1,378 @@
+{
+	"info": {
+		"_postman_id": "e6ca2252-c978-4347-84c6-a7a88b9e4aec",
+		"name": "Six Degrees of Kevin Bacon",
+		"description": "testing endpoints for \"Six Degrees of Kevin Bacon\"",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "addMovie",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"name\": \"Graduation\",\r\t\"movieID\": \"742053\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/addMovie",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"addMovie"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "addActor",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"name\": \"Emma Stone\",\r\t\"actorID\": \"9348\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/addActor",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"addActor"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "addRelationship",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"actorID\": \"9348\",\r\t\"movieID\": \"742053\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/addRelationship",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"addRelationship"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getActor",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"actorID\": \"9348\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/getActor",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"getActor"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getMovie",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"movieID\": \"742053\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/getMovie",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"getMovie"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "hasRelationship",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"actorID\": \"9348\",\r\t\"movieID\": \"742053\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/hasRelationship",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"hasRelationship"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "computeBaconPath",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"actorId\": \"9348\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/computeBaconPath",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"computeBaconPath"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "computeBaconNumber",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\t\"actorId\": \"9348\"\r}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/computeBaconNumber",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"computeBaconNumber"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "\"Steve Adams\"",
+							"disabled": true
+						},
+						{
+							"key": "actorID",
+							"value": "\"12345\"",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

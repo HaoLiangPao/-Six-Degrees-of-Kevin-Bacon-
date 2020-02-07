@@ -73,6 +73,7 @@ public class addActor implements HttpHandler {
 	  try {
 	  	String body = Utils.convert(r.getRequestBody());
 	  	JSONObject deserialized = new JSONObject(body);
+
 	    //If either name or actorID is not given return 400 as BAD REQUEST
 	    if (!deserialized.has("name") || !deserialized.has("actorID")) {
 	    	r.sendResponseHeaders(400, -1);
